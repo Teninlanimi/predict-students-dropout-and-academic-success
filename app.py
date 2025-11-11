@@ -8,7 +8,8 @@ import pandas as pd
 # ==========================
 @st.cache_resource
 def load_pipeline():
-    model = joblib.load("data/multiclass_classification_model.pkl")
+    # All files are in the same folder, so use the direct filename
+    model = joblib.load("multiclass_classification_model.pkl")
     feature_columns = [
         'Marital status', 'Course', 'Daytime/evening attendance', 'Nacionality', 'Displaced',
         'Educational special needs', 'Tuition fees up to date', 'Gender', 'Scholarship holder',
