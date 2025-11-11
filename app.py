@@ -10,14 +10,9 @@ import pandas as pd
 def load_pipeline():
     # All files are in the same folder, so use the direct filename
     model = joblib.load("multiclass_classification_model.pkl")
-    feature_columns = [
-        'Marital status', 'Course', 'Daytime/evening attendance', 'Nacionality', 'Displaced',
-        'Educational special needs', 'Tuition fees up to date', 'Gender', 'Scholarship holder',
-        'Age at enrollment', 'Curricular units 1st sem (enrolled)', 'Curricular units 1st sem (approved)',
-        'Curricular units 1st sem (grade)', 'Curricular units 2nd sem (enrolled)',
-        'Curricular units 2nd sem (approved)', 'Curricular units 2nd sem (grade)',
-        'Unemployment rate', 'Inflation rate', 'GDP'
-    ]
+    # Load feature list from file to ensure exact match
+    with open('final_feature_list.txt', 'r') as f:
+        feature_columns = [line.strip() for line in f if line.strip()]
     return model, feature_columns
 
 model, feature_columns = load_pipeline()
@@ -35,96 +30,85 @@ based on key academic and personal information.
 # ==========================
 # User Input Form
 # ==========================
+
+# Dynamically generate input fields for all features in final_feature_list.txt
 with st.form("Academic Outcome Prediction Form"):
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        Marital_status = st.selectbox("Marital Status", ["Single", "Married", "Divorced"])
-        Course = st.selectbox(
-            "Select Course",
-            ["Architecture", "Computer Science", "Physics", "Accounting", "Civil Engineering"]
-        )
-        Attendance = st.selectbox("Daytime/Evening Attendance", ["Daytime", "Evening"])
-        Nacionality = st.selectbox("Nacionality", ["Domestic", "International"])
-        Displaced = st.selectbox("Displaced", ["No", "Yes"])
-        Special_Needs = st.selectbox("Educational Special Needs", ["No", "Yes"])
-
-    with col2:
-        Tuition = st.selectbox("Tuition Fees Up to Date", ["No", "Yes"])
-        Gender = st.selectbox("Gender", ["Male", "Female"])
-        Scholarship = st.selectbox("Scholarship Holder", ["No", "Yes"])
-        Age_at_enrollment = st.number_input("Age at Enrollment", min_value=16, max_value=90, value=18)
-        Unemployment_rate = st.number_input("Unemployment Rate (%)", min_value=0.0, max_value=50.0, value=10.0)
-        Inflation_rate = st.number_input("Inflation Rate (%)", min_value=0.0, max_value=50.0, value=3.0)
-
-    with col3:
-        GDP = st.number_input("GDP Growth (%)", min_value=-10.0, max_value=20.0, value=2.5)
-        Sem1_Enrolled = st.number_input("Curricular Units 1st Sem (Enrolled)", min_value=0, value=6)
-        Sem1_Approved = st.number_input("Curricular Units 1st Sem (Approved)", min_value=0, value=5)
-        Sem1_Grade = st.number_input("Curricular Units 1st Sem (Grade)", min_value=0.0, max_value=20.0, value=12.0)
-        Sem2_Enrolled = st.number_input("Curricular Units 2nd Sem (Enrolled)", min_value=0, value=6)
-        Sem2_Approved = st.number_input("Curricular Units 2nd Sem (Approved)", min_value=0, value=5)
-        Sem2_Grade = st.number_input("Curricular Units 2nd Sem (Grade)", min_value=0.0, max_value=20.0, value=12.0)
-
+    user_inputs = {}
+    for feature in feature_columns:
+        # Simple heuristics for input type
+        if feature.lower().startswith("marital"):
+            user_inputs[feature] = st.selectbox(feature, ["Single", "Married", "Divorced"])
+        elif feature.lower() == "course":
+            user_inputs[feature] = st.selectbox(feature, ["Architecture", "Computer Science", "Physics", "Accounting", "Civil Engineering"])
+        elif "attendance" in feature.lower():
+            user_inputs[feature] = st.selectbox(feature, ["Daytime", "Evening"])
+        elif feature.lower() == "nacionality":
+            user_inputs[feature] = st.selectbox(feature, ["Domestic", "International"])
+        elif feature.lower() in ["displaced", "educational special needs", "tuition fees up to date", "scholarship holder"]:
+            user_inputs[feature] = st.selectbox(feature, ["No", "Yes"])
+        elif feature.lower() == "gender":
+            user_inputs[feature] = st.selectbox(feature, ["Male", "Female"])
+        elif "enrolled" in feature.lower() or "approved" in feature.lower() or "credited" in feature.lower() or "evaluations" in feature.lower() or "without evaluations" in feature.lower():
+            user_inputs[feature] = st.number_input(feature, min_value=0, value=0)
+        elif "grade" in feature.lower():
+            user_inputs[feature] = st.number_input(feature, min_value=0.0, max_value=20.0, value=10.0)
+        elif feature.lower() == "age at enrollment":
+            user_inputs[feature] = st.number_input(feature, min_value=16, max_value=90, value=18)
+        elif feature.lower() == "unemployment rate" or feature.lower() == "inflation rate":
+            user_inputs[feature] = st.number_input(feature, min_value=0.0, max_value=50.0, value=3.0)
+        elif feature.lower() == "gdp":
+            user_inputs[feature] = st.number_input(feature, min_value=-10.0, max_value=20.0, value=2.5)
+        else:
+            # Default to text input for unknown types
+            user_inputs[feature] = st.text_input(feature, "")
     submitted = st.form_submit_button("Predict Outcome")
 
 # ==========================
 # Prediction Logic
 # ==========================
 if submitted:
-    # Encode categorical variables
-    course_map = {
-        "Architecture": 0,
-        "Computer Science": 1,
-        "Physics": 2,
-        "Accounting": 3,
-        "Civil Engineering": 4
-    }
-    marital_map = {"Single": 0, "Married": 1, "Divorced": 2}
-    attendance_map = {"Daytime": 0, "Evening": 1}
-    nationality_map = {"Domestic": 0, "International": 1}
+    # Encoding for categorical variables (must match training)
+    def encode_value(feature, value):
+        if feature.lower().startswith("marital"):
+            return {"Single": 0, "Married": 1, "Divorced": 2}.get(value, 0)
+        elif feature.lower() == "course":
+            return {"Architecture": 0, "Computer Science": 1, "Physics": 2, "Accounting": 3, "Civil Engineering": 4}.get(value, 0)
+        elif "attendance" in feature.lower():
+            return {"Daytime": 0, "Evening": 1}.get(value, 0)
+        elif feature.lower() == "nacionality":
+            return {"Domestic": 0, "International": 1}.get(value, 0)
+        elif feature.lower() in ["displaced", "educational special needs", "tuition fees up to date", "scholarship holder"]:
+            return 1 if value == "Yes" else 0
+        elif feature.lower() == "gender":
+            return 1 if value == "Female" else 0
+        else:
+            # Try to convert to float, fallback to 0
+            try:
+                return float(value)
+            except Exception:
+                return 0
 
-    displaced_val = 1 if Displaced == "Yes" else 0
-    special_needs_val = 1 if Special_Needs == "Yes" else 0
-    tuition_val = 1 if Tuition == "Yes" else 0
-    gender_val = 1 if Gender == "Female" else 0  # Female = 1
-    scholarship_val = 1 if Scholarship == "Yes" else 0
-
-    input_data = pd.DataFrame([{
-        'Marital status': marital_map[Marital_status],
-        'Course': course_map[Course],
-        'Daytime/evening attendance': attendance_map[Attendance],
-        'Nacionality': nationality_map[Nacionality],
-        'Displaced': displaced_val,
-        'Educational special needs': special_needs_val,
-        'Tuition fees up to date': tuition_val,
-        'Gender': gender_val,
-        'Scholarship holder': scholarship_val,
-        'Age at enrollment': Age_at_enrollment,
-        'Curricular units 1st sem (enrolled)': Sem1_Enrolled,
-        'Curricular units 1st sem (approved)': Sem1_Approved,
-        'Curricular units 1st sem (grade)': Sem1_Grade,
-        'Curricular units 2nd sem (enrolled)': Sem2_Enrolled,
-        'Curricular units 2nd sem (approved)': Sem2_Approved,
-        'Curricular units 2nd sem (grade)': Sem2_Grade,
-        'Unemployment rate': Unemployment_rate,
-        'Inflation rate': Inflation_rate,
-        'GDP': GDP
-    }])
-
-    input_data = input_data.reindex(columns=feature_columns)
+    input_dict = {feature: encode_value(feature, user_inputs[feature]) for feature in feature_columns}
+    input_data = pd.DataFrame([input_dict])
 
     prediction = model.predict(input_data)[0]
     probabilities = model.predict_proba(input_data)[0]
 
+    # Try to get class names from model if available
+    if hasattr(model, 'classes_'):
+        class_names = list(model.classes_)
+    else:
+        class_names = ["Enrolled", "Graduate", "Dropout"]
+
+    # Map prediction to label if possible
     label_map = {0: "Enrolled", 1: "Graduate", 2: "Dropout"}
-    predicted_label = label_map.get(prediction, "Unknown")
+    predicted_label = label_map.get(prediction, str(prediction))
 
     st.success(f"🎯 Predicted Academic Outcome: **{predicted_label}**")
 
     st.markdown("### Prediction Probabilities:")
     prob_df = pd.DataFrame({
-        "Outcome": ["Enrolled", "Graduate", "Dropout"],
+        "Outcome": class_names,
         "Probability": probabilities
     })
     st.bar_chart(prob_df.set_index("Outcome"))
