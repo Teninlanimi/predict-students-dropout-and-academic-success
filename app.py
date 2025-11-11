@@ -8,7 +8,7 @@ import pandas as pd
 # ==========================
 @st.cache_resource
 def load_pipeline():
-    model = joblib.load("multiclass_classification_model.pkl")
+    model = joblib.load("data/multiclass_classification_model.pkl")
     feature_columns = [
         'Marital status', 'Course', 'Daytime/evening attendance', 'Nacionality', 'Displaced',
         'Educational special needs', 'Tuition fees up to date', 'Gender', 'Scholarship holder',
@@ -79,7 +79,6 @@ if submitted:
         "Accounting": 3,
         "Civil Engineering": 4
     }
-
     marital_map = {"Single": 0, "Married": 1, "Divorced": 2}
     attendance_map = {"Daytime": 0, "Evening": 1}
     nationality_map = {"Domestic": 0, "International": 1}
@@ -90,7 +89,6 @@ if submitted:
     gender_val = 1 if Gender == "Female" else 0  # Female = 1
     scholarship_val = 1 if Scholarship == "Yes" else 0
 
-    # Arrange data in a DataFrame using the correct column order
     input_data = pd.DataFrame([{
         'Marital status': marital_map[Marital_status],
         'Course': course_map[Course],
@@ -113,21 +111,16 @@ if submitted:
         'GDP': GDP
     }])
 
-    # Reorder columns to match training
     input_data = input_data.reindex(columns=feature_columns)
 
-    # Predict using the pipeline (scaling included)
     prediction = model.predict(input_data)[0]
     probabilities = model.predict_proba(input_data)[0]
 
-    # Map result to label
     label_map = {0: "Enrolled", 1: "Graduate", 2: "Dropout"}
     predicted_label = label_map.get(prediction, "Unknown")
 
-    # Display result
     st.success(f"🎯 Predicted Academic Outcome: **{predicted_label}**")
 
-    # Show confidence probabilities
     st.markdown("### Prediction Probabilities:")
     prob_df = pd.DataFrame({
         "Outcome": ["Enrolled", "Graduate", "Dropout"],
