@@ -4,16 +4,22 @@ import numpy as np
 import pandas as pd
 
 # ==========================
-# Load model, scaler, and feature columns
+# Load the complete pipeline and feature list
 # ==========================
 @st.cache_resource
-def load_artifacts():
+def load_pipeline():
     model = joblib.load("multiclass_classification_model.pkl")
-    scaler = joblib.load("scaler.pkl")
-    feature_columns = joblib.load("feature_columns.pkl")
-    return model, scaler, feature_columns
+    feature_columns = [
+        'Marital status', 'Course', 'Daytime/evening attendance', 'Nacionality', 'Displaced',
+        'Educational special needs', 'Tuition fees up to date', 'Gender', 'Scholarship holder',
+        'Age at enrollment', 'Curricular units 1st sem (enrolled)', 'Curricular units 1st sem (approved)',
+        'Curricular units 1st sem (grade)', 'Curricular units 2nd sem (enrolled)',
+        'Curricular units 2nd sem (approved)', 'Curricular units 2nd sem (grade)',
+        'Unemployment rate', 'Inflation rate', 'GDP'
+    ]
+    return model, feature_columns
 
-model, scaler, feature_columns = load_artifacts()
+model, feature_columns = load_pipeline()
 
 # ==========================
 # Streamlit Layout
@@ -107,14 +113,12 @@ if submitted:
         'GDP': GDP
     }])
 
-    # Reorder columns to match training features
+    # Reorder columns to match training
     input_data = input_data.reindex(columns=feature_columns)
 
-    # Scale features
-    input_scaled = scaler.transform(input_data)
-
-    # Predict
-    prediction = model.predict(input_scaled)[0]
+    # Predict using the pipeline (scaling included)
+    prediction = model.predict(input_data)[0]
+    probabilities = model.predict_proba(input_data)[0]
 
     # Map result to label
     label_map = {0: "Enrolled", 1: "Graduate", 2: "Dropout"}
@@ -122,3 +126,11 @@ if submitted:
 
     # Display result
     st.success(f"🎯 Predicted Academic Outcome: **{predicted_label}**")
+
+    # Show confidence probabilities
+    st.markdown("### Prediction Probabilities:")
+    prob_df = pd.DataFrame({
+        "Outcome": ["Enrolled", "Graduate", "Dropout"],
+        "Probability": probabilities
+    })
+    st.bar_chart(prob_df.set_index("Outcome"))
