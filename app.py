@@ -20,8 +20,8 @@ model, feature_columns = load_pipeline()
 # ==========================
 # Streamlit Layout
 # ==========================
-st.set_page_config(page_title="🎓 Predict Academic Outcome", layout="centered")
-st.title("🎓 Predict Academic Outcome")
+st.set_page_config(page_title=" Predict Academic Outcome", layout="centered")
+st.title(" Predict Academic Outcome")
 st.markdown("""
 This app predicts whether a student is likely to **Graduate**, **Dropout**, or **Remain Enrolled** 
 based on key academic and personal information.
@@ -48,9 +48,9 @@ with st.form("Academic Outcome Prediction Form"):
             attendance_options = {"Daytime": 1, "Evening": 0}
             attendance_choice = st.selectbox(feature, list(attendance_options.keys()))
             user_inputs[feature] = attendance_options[attendance_choice]
-        elif feature_lower == "nacionality":
+        elif feature_lower == "nationality":
             # Nationality is encoded numerically in training data
-            user_inputs[feature] = st.number_input(feature + " (1=Portuguese, other=code)", min_value=1, value=1, step=1)
+            user_inputs[feature] = st.number_input(feature + " (1=Nigerian, other=code)", min_value=1, value=1, step=1)
         elif feature_lower in ["displaced", "educational special needs", "tuition fees up to date", "scholarship holder"]:
             binary_options = {"No": 0, "Yes": 1}
             binary_choice = st.selectbox(feature, list(binary_options.keys()))
@@ -97,7 +97,7 @@ if submitted:
     else:
         class_names = ["Enrolled", "Dropout", "Graduate"]
 
-    st.success(f"🎯 Predicted Academic Outcome: **{predicted_label}**")
+    st.success(f" Predicted Academic Outcome: **{predicted_label}**")
 
     st.markdown("### Prediction Probabilities:")
     prob_df = pd.DataFrame({
