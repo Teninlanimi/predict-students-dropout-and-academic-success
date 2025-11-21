@@ -48,7 +48,7 @@ with st.form("Academic Outcome Prediction Form"):
             attendance_options = {"Daytime": 1, "Evening": 0}
             attendance_choice = st.selectbox(feature, list(attendance_options.keys()))
             user_inputs[feature] = attendance_options[attendance_choice]
-        elif feature_lower == "nationality":
+        elif feature_lower == "nacionality":
             # Nationality is encoded numerically in training data
             user_inputs[feature] = st.number_input(feature + " (1=Nigerian, other=code)", min_value=1, value=1, step=1)
         elif feature_lower in ["displaced", "educational special needs", "tuition fees up to date", "scholarship holder"]:
